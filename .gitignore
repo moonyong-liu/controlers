@@ -1,0 +1,10 @@
+#IAR
+*.tmp
+*.sfr
+*.dep
+*.ewd
+*.ewp
+*.eww
+settings/
+Debug/
+SI/
