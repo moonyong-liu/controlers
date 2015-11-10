@@ -300,15 +300,32 @@ static uint8 send_exe_message( uint8 whodid )
   //uint8 flag=0;
   //uint8 send_times=0;
   uint8 fedback;
+  uint8 readrelay;
   memset((void *)&SendResult,0,length);
   SendResult._Type.Type = ExeM_H;
   SendResult._ID.ID = CanIDH;
-  SendResult._DataForWho._OpDevFe.OtptSign._Bit.OtptVal |= READRELAY; 
+  if(LoCoExe->ExeType==Fan){
+    readrelay = !READRELAY;
+  }
+  else{
+    readrelay = READRELAY;
+  }
+  SendResult._DataForWho._OpDevFe.OtptSign._Bit.OtptVal |= readrelay; 
   if( READFEEDBACK == 0x01 ){
-    fedback = 1;
+    if(LoCoExe->ExeType==Fan){
+      fedback = 0;
+    }
+    else{
+      fedback = 1;
+    }
   }
   else if( READFEEDBACK == 0x02){
-    fedback = 0;
+    if(LoCoExe->ExeType==Fan){
+      fedback = 1;
+    }
+    else{
+      fedback = 0;
+    }
   }
   else if( READFEEDBACK == 0x03){
     WarningTmp._Bit.DeviceERR = 1;
@@ -688,22 +705,20 @@ uint8 check_auto(void)
       if(ForceSign){
         if( LoCoExe->ExeType == Fan ){
           RELAYON;
-          FORCENIGHT;
         }
         else{
           RELAYOFF;
-          FORCELIGHT;
         }
+        FORCELIGHT;
       }
       else{
         if( LoCoExe->ExeType == Fan ){
           RELAYOFF;
-          FORCELIGHT;
         }
         else{
-          RELAYON;
-          FORCENIGHT;
+          RELAYON; 
         }
+        FORCENIGHT;
       }      
     }
   }
@@ -773,15 +788,20 @@ uint8 check_overtime( void )
 
 uint8 check_realyon(void)
 {
-  if( RelayOnSign >= RELAYONDELY ){      // wait 15s, set relay on
-    if( LoCoExe->ExeType == Fan ){
-      RELAYOFF;
+  if( Statues->_Bit.CtrlMode == LocoAuto ){
+    if( RelayOnSign >= RELAYONDELY ){      // wait 15s, set relay on
+      if( LoCoExe->ExeType == Fan ){
+        RELAYOFF;
+      }
+      else{
+        RELAYON;
+      }
+      
+      RelayOnSet=0;
     }
-    else{
-      RELAYON;
-    }
-    
-    RelayOnSet=0;
+  }
+  else if( Statues->_Bit.CtrlMode == PcHand ){
+    RelayOnSign = 0;
   }
   return 0;
 }
@@ -1035,17 +1055,19 @@ __interrupt void TIMER0_A0_ISR(void)
     ForceCount = 0;
   }
   // check asso device time out
-  if( LoCoAsso->Quantity != 0xff ){
-    asso_number = LoCoAsso->Quantity;
-  }
-  else{
-    asso_number=0;
-  }
-  for(tmp1=0; tmp1<asso_number;tmp1++){
-    if( ConeCheck[tmp1] >= ASSOTIMEOUT ){  
+  if( Statues->_Bit.CtrlMode == LocoAuto ){
+    if( LoCoAsso->Quantity != 0xff ){
+      asso_number = LoCoAsso->Quantity;
     }
     else{
-      ConeCheck[tmp1]++;
+      asso_number=0;
+    }
+    for(tmp1=0; tmp1<asso_number;tmp1++){
+      if( ConeCheck[tmp1] >= ASSOTIMEOUT ){  
+      }
+      else{
+        ConeCheck[tmp1]++;
+      }
     }
   }
   // check relay on sign ok

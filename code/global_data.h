@@ -37,8 +37,10 @@ const uint8 CanIDL = 0x01; // 3bits max = 7
 #define HANDLIGHT P9OUT |= 0x20
 #define AUTOLIGHT P9OUT &=~0x20
 
-#define SENLIGHT P9OUT |= 0x40
-#define SENNIGHT P9OUT &=~0x40
+#define SENLIGHT if(LoCoExe->ExeType==Fan)P9OUT&=~0x40;\
+                 else(P9OUT|=0x40)
+#define SENNIGHT if(LoCoExe->ExeType==Fan)P9OUT|=0x40;\
+                 else(P9OUT&=~0x40)
 
 #define CANLIGHT P9OUT |= 0x80
 #define CANNIGHT P9OUT &=~0x80
@@ -59,7 +61,7 @@ const uint8 CanIDL = 0x01; // 3bits max = 7
 #define HAND (P1IN&0x08)>0?1:0
 #define FORCE  (P1IN&0x04)>0?1:0
 
-#define ASSOTIMEOUT 900
-#define RELAYONDELY 900
+#define ASSOTIMEOUT 3750
+#define RELAYONDELY 1875   
 
 #endif
