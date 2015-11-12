@@ -216,8 +216,8 @@ typedef union{
     struct{
       uint8 DeviceERR     : 1;
       uint8 AssoDevAlm    : 1;
-      uint8 x3            : 1;
-      uint8 x2            : 1;
+      uint8 AssoNotCofig  : 1;
+      uint8 ExeNotCofig   : 1;
       uint8 x             : 1;
       uint8 y             : 1;
       uint8 z             : 1;

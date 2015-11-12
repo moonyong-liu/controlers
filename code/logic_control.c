@@ -789,7 +789,7 @@ uint8 check_overtime( void )
 uint8 check_realyon(void)
 {
   if( Statues->_Bit.CtrlMode == LocoAuto ){
-    if( RelayOnSign >= RELAYONDELY ){      // wait 15s, set relay on
+    if( RelayOnSign >= RELAYONDELY ){      // wait 30s, set relay on
       if( LoCoExe->ExeType == Fan ){
         RELAYOFF;
       }
@@ -812,6 +812,35 @@ uint8 check_feedback_working( void )
   if( READFEEDBACK ){
     
   }
+  return 0;
+}
+
+// check not config ok
+uint8 check_config_faile( void )
+{
+  if( LoCoExe->DevSeted == 1 ){
+    if( LoCoExe->ExeType>=0x14 && LoCoExe->ExeType<=0x16 ){
+      WarningTmp._Bit.ExeNotCofig = 0;
+    }
+    else{
+      WarningTmp._Bit.ExeNotCofig = 1;
+    }
+  }
+  else{
+    WarningTmp._Bit.ExeNotCofig = 1;
+  }
+  if( LoCoAsso->Quantity != 0xff ){
+    if( LoCoAsso->Quantity>0 && LoCoAsso->Quantity<=0xfe ){
+      WarningTmp._Bit.AssoNotCofig = 0;
+    }
+    else{
+      WarningTmp._Bit.AssoNotCofig = 1;
+    }
+  }
+  else{
+    WarningTmp._Bit.AssoNotCofig = 1;
+  }
+  
   return 0;
 }
 //------------------------------------------------------------------------------
@@ -848,6 +877,7 @@ uint8 exe_working(void)
   check_auto();
   check_overtime();
   check_realyon();
+  check_config_faile();
   return 0;
 }
 
