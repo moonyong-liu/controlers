@@ -230,7 +230,8 @@ typedef union{
 //control status
 typedef union{
   struct{
-  uint8 x             : 2;
+  uint8 x             : 1;
+  uint8 FedbkErr      : 1;
   uint8 AssoEn        : 1;
   uint8 Force         : 1;
   uint8 CtrlMode      : 2;

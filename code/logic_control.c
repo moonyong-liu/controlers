@@ -299,8 +299,9 @@ static uint8 send_exe_message( uint8 whodid )
   uint8 length=6;
   //uint8 flag=0;
   //uint8 send_times=0;
-  uint8 fedback;
-  uint8 readrelay;
+  uint8 fedback=0;
+  uint8 fedbackerr=0; //kui dian yi chang
+  uint8 readrelay=0;
   memset((void *)&SendResult,0,length);
   SendResult._Type.Type = ExeM_H;
   SendResult._ID.ID = CanIDH;
@@ -333,8 +334,10 @@ static uint8 send_exe_message( uint8 whodid )
   }
   else{
     fedback = 0;
+    fedbackerr = 1;
   }
   SendResult._DataForWho._OpDevFe.OtptSign._Bit.Fedback |= fedback;
+  SendResult._DataForWho._OpDevFe.OtptSign._Bit.FedbkErr |= fedbackerr;
   SendResult._DataForWho._OpDevFe.OtptSign._Bit.CtrlMode |= Statues->_Bit.CtrlMode;
   SendResult._DataForWho._OpDevFe.OtptSign._Bit.Force |= Statues->_Bit.Force;
   SendResult._DataForWho._OpDevFe.Warning = WarningTmp;
