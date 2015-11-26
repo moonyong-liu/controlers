@@ -1017,6 +1017,7 @@ uint8 handle_data_logic( _RDataTmp* NewData )
         default: break;
         }
         if( whodid == 1 ){
+          FlagTa0Xs = 800;  //clear timer
           StatuesTmp._Bit.AssoEn = 1; 
           WarningTmp._Bit.AssoDevAlm = 1;
           send_exe_message( p_to_id );
