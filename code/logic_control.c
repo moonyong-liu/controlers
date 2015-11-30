@@ -270,7 +270,7 @@ static uint8 assotype_5( _Warn *WarValue, uint8 CurrentDevice )
 }
 
 // 总 电 源 开 关 
-// 所有关联节点无数据15s后 断电
+// 所有关联节点无数据30s后 断电
 static uint8 assotype_6( _Warn *Value, uint8 CurrentDevice )
 {
   if( LoCoExe->ExeType == Power ){
@@ -695,7 +695,7 @@ uint8 check_auto(void)
       AUTOLIGHT;
       FORCENIGHT;
     }
-    else if( Statues->_Bit.CtrlMode == LocoAuto ){
+    else if( Statues->_Bit.CtrlMode == LocoAuto || Statues->_Bit.CtrlMode == PcHand ){
       StatuesTmp = *Statues;
       StatuesTmp._Bit.CtrlMode = LocoHand;
       clear_flash_statues();
