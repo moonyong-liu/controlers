@@ -701,7 +701,6 @@ uint8 check_auto(void)
       clear_flash_statues();
       write_flash_statues();
       HANDLIGHT;
-      
     }
   }
   if(Statues->_Bit.CtrlMode == LocoHand){
