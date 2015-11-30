@@ -332,9 +332,6 @@ static uint8 send_exe_message( uint8 whodid )
   else if( READFEEDBACK == 0x03){
     WarningTmp._Bit.DeviceERR = 1;
     //backoff on: p5.0  off: p5.1
-    P5DIR &= 0xfc;	
-    P5REN |= 0x03;		
-    P5SEL &= 0xfc;
     fedback = 0;
   }
   else{
@@ -937,6 +934,7 @@ uint8 handle_data_logic( _RDataTmp* NewData )
             ConeCheck[tmp1] =0;
           }
           clear_flash_asso();
+          LastDevice=0xff;
         }      
       }
       else if( NewData->Data._Type.Type == 0x08 ){  // Êä³öÉè±¸
