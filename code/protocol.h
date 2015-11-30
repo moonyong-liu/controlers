@@ -221,7 +221,7 @@ typedef union{
       uint8 x             : 1;
       uint8 y             : 1;
       uint8 z             : 1;
-      uint8 CanWar        : 1;
+      uint8 P             : 1;
 
     }_Bit;
     uint8 Byte;

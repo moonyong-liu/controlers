@@ -311,7 +311,8 @@ static uint8 send_exe_message( uint8 whodid )
   else{
     readrelay = READRELAY;
   }
-  SendResult._DataForWho._OpDevFe.OtptSign._Bit.OtptVal |= readrelay; 
+  SendResult._DataForWho._OpDevFe.OtptSign._Bit.OtptVal |= readrelay;
+  WarningTmp._Bit.DeviceERR = 0; 
   if( READFEEDBACK == 0x01 ){
     if(LoCoExe->ExeType==Fan){
       fedback = 0;
@@ -330,6 +331,10 @@ static uint8 send_exe_message( uint8 whodid )
   }
   else if( READFEEDBACK == 0x03){
     WarningTmp._Bit.DeviceERR = 1;
+    //backoff on: p5.0  off: p5.1
+    P5DIR &= 0xfc;	
+    P5REN |= 0x03;		
+    P5SEL &= 0xfc;
     fedback = 0;
   }
   else{
