@@ -54,7 +54,7 @@ uint8 ForceSign;                 // ta1
 uint8 FlagTnsend=0;              // time to send message
 uint8 Led500ms=13;               // CAN LED BLINK PERIOD 
 uint8 TimeFlag;                  // delay function 
-uint8 RelayOnSet;                // relay delay on begin
+uint8 RelayOnSet=1;                // relay delay on begin
 
 // controler
 // external variable
@@ -97,13 +97,12 @@ static uint8 assotype_1( _Warn *WarValue, uint8 CurrentDevice, uint16 value )
     }
     if( value >= ONEHALFPER ){
       RELAYOFF; // ¶Ïµç
-      RelayOnSet=0;              // RELAY ON delay count stop
       CutDownSign |= 0x01;       // sign I cut the power
       return 1;
     }
     else if( value <= ONEPERCENT){
       if(!(CutDownSign&0xfe)){           // other assotype didn`t cut the power
-        RelayOnSet=1;              // RELAY ON delay count begin
+        RELAYON;              // RELAY ON 
         
       }
       CutDownSign &= ~0x01;      // sign I repower
@@ -134,13 +133,11 @@ static uint8 assotype_2( _Warn *WarValue, uint8 CurrentDevice, uint16 value )
     if( value >= ONEPERCENT ){
       CutDownSign |= 0x02;       // sign I cut the power
       RELAYOFF; 
-      RelayOnSet=0;              // RELAY ON delay count stop
       return 1;
     }
     else{
       if(!(CutDownSign&0xfd)){           // other assotype didn`t cut the power
-        
-        RelayOnSet=1;              // RELAY ON delay count begin
+         RELAYON;              // RELAY ON 
       }
       CutDownSign &= ~0x02;      // sign I repower
     }
@@ -169,12 +166,11 @@ static uint8 assotype_3( _Warn *WarValue, uint8 CurrentDevice, uint16 value )
     if( value >= HALFPERCENT ){
       CutDownSign |= 0x04;       // sign I cut the power
       RELAYOFF;
-      RelayOnSet=0;              // RELAY ON delay count stop
       return 1;
     }
     else{
       if(!(CutDownSign&0xfb)){           // other assotype didn`t cut the power
-        RelayOnSet=1;              // RELAY ON delay count begin
+         RELAYON;              // RELAY ON 
       }
       CutDownSign &= ~0x04;      // sign I repower
     }
@@ -203,7 +199,6 @@ static uint8 assotype_4( _Warn *WarValue, uint8 CurrentDevice, uint16 Value )
     }
     if( Value >= THEPERCENT ){
       RELAYON;
-      RelayOnSet=0;              // RELAY ON delay count stop
       CutDownSign |= 0x08;       // sign I cut the power
       LastDevice = LoCoAsso->AssoInfo[CurrentDevice].AssoID;
       return 1;
@@ -212,14 +207,14 @@ static uint8 assotype_4( _Warn *WarValue, uint8 CurrentDevice, uint16 Value )
       if( LastDevice != 0xff ){       // not first in 
         if( LastDevice == LoCoAsso->AssoInfo[CurrentDevice].AssoID ){
           if(!(CutDownSign&0xf7)){           // other assotype didn`t cut the power
-            RelayOnSet=1;              // RELAY ON delay count begin         
+             RELAYOFF;              // RELAY OFF         
           }
           CutDownSign &= ~0x08;      // sign I repower
         }
       }
       else{                                // first in
         if(!(CutDownSign&0xf7)){           // other assotype didn`t cut the power
-          RelayOnSet=1;              // RELAY ON delay count begin         
+           RELAYOFF;              // RELAY OFF          
         }
         CutDownSign &= ~0x08;      // sign I repower
       }
@@ -247,13 +242,12 @@ static uint8 assotype_5( _Warn *WarValue, uint8 CurrentDevice )
       else{
         RELAYOFF;
       }
-      RelayOnSet=0;              // RELAY ON delay count stop
       CutDownSign |= 0x10;       // sign I cut the power
       return 1;
     }
     else{
       if(!(CutDownSign&0xef)){           // other assotype didn`t cut the power
-        RelayOnSet=1;              // RELAY ON delay count begin 
+         RELAYON;              // RELAY ON 
       }
     }
     CutDownSign &= ~0x10;      // sign I repower
@@ -765,7 +759,6 @@ uint8 check_overtime( void )
       else{
         RELAYOFF;                                // power off
       }
-      RelayOnSet=0;              // RELAY ON delay count stop
       CutDownSign |= 0x20;                     // sign I cut the power
       LastDevice = LoCoAsso->AssoInfo[tmp1].AssoID;
       return 1;
@@ -774,14 +767,14 @@ uint8 check_overtime( void )
       if( LastDevice != 0xff ){        // not first in
         if( LastDevice == LoCoAsso->AssoInfo[tmp1].AssoID ){
           if(!(CutDownSign&0xdf)){                 // other assotype didn`t cut the power
-            RelayOnSet=1;              // RELAY ON delay count begin 
+             RELAYON;              // RELAY ON  
           }
           CutDownSign &= ~0x20;      // sign I repower
         }
       }
       else{                                // first in
         if(!(CutDownSign&0xdf)){           // other assotype didn`t cut the power
-          RelayOnSet=1;              // RELAY ON delay count begin         
+           RELAYON;              // RELAY ON         
         }
         CutDownSign &= ~0x20;      // sign I repower
       }
@@ -800,7 +793,6 @@ uint8 check_realyon(void)
       else{
         RELAYON;
       }
-      
       RelayOnSet=0;
     }
   }
@@ -1108,7 +1100,7 @@ __interrupt void TIMER0_A0_ISR(void)
   }
   // check relay on sign ok
   if( RelayOnSet ){                  // begin count to set relay
-    if( RelayOnSign <= RELAYONDELY ){       // less than 15s
+    if( RelayOnSign <= RELAYONDELY ){       // less than RELAYONDELY
       RelayOnSign++;                 // go up
     }
   }
