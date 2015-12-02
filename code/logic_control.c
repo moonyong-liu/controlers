@@ -54,7 +54,7 @@ uint8 ForceSign;                 // ta1
 uint8 FlagTnsend=0;              // time to send message
 uint8 Led500ms=13;               // CAN LED BLINK PERIOD 
 uint8 TimeFlag;                  // delay function 
-uint8 RelayOnSet=1;                // relay delay on begin
+uint8 StartDelay=1;                // relay delay on begin
 
 // controler
 // external variable
@@ -782,18 +782,12 @@ uint8 check_overtime( void )
   }
   return 0;
 }
-
+// start 1min delay
 uint8 check_realyon(void)
 {
   if( Statues->_Bit.CtrlMode == LocoAuto ){
-    if( RelayOnSign >= RELAYONDELY ){      // wait 30s, set relay on
-      if( LoCoExe->ExeType == Fan ){
-        RELAYOFF;
-      }
-      else{
-        RELAYON;
-      }
-      RelayOnSet=0;
+    if( RelayOnSign >= RELAYONDELY ){      // wait realyondely
+      StartDelay=0;
     }
   }
   else if( Statues->_Bit.CtrlMode == PcHand ){
@@ -991,6 +985,7 @@ uint8 handle_data_logic( _RDataTmp* NewData )
       //}
     }
     else{                  // 其他CAN节点信息
+      if( StartDelay == 1 )return 1;         // start 1min delay
       if( Statues->_Bit.CtrlMode != LocoAuto )return 1;
       if( NewData->Data._Type.Type == ColM_H ){
         //assotype = search_id( NewData->Data._ID.ID );
@@ -1083,23 +1078,25 @@ __interrupt void TIMER0_A0_ISR(void)
     ForceCount = 0;
   }
   // check asso device time out
-  if( Statues->_Bit.CtrlMode == LocoAuto ){
-    if( LoCoAsso->Quantity != 0xff ){
-      asso_number = LoCoAsso->Quantity;
-    }
-    else{
-      asso_number=0;
-    }
-    for(tmp1=0; tmp1<asso_number;tmp1++){
-      if( ConeCheck[tmp1] >= ASSOTIMEOUT ){  
+  if( StartDelay == 0){
+    if( Statues->_Bit.CtrlMode == LocoAuto ){
+      if( LoCoAsso->Quantity != 0xff ){
+        asso_number = LoCoAsso->Quantity;
       }
       else{
-        ConeCheck[tmp1]++;
+        asso_number=0;
+      }
+      for(tmp1=0; tmp1<asso_number;tmp1++){
+        if( ConeCheck[tmp1] >= ASSOTIMEOUT ){  
+        }
+        else{
+          ConeCheck[tmp1]++;
+        }
       }
     }
   }
   // check relay on sign ok
-  if( RelayOnSet ){                  // begin count to set relay
+  if( StartDelay ){                  // begin count to set relay
     if( RelayOnSign <= RELAYONDELY ){       // less than RELAYONDELY
       RelayOnSign++;                 // go up
     }
