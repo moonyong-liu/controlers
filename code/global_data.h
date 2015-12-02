@@ -23,6 +23,8 @@ const uint8 CanIDL = 0x01; // 3bits max = 7
 
 #define RELAYON  P1OUT &= ~0x10
 #define RELAYOFF P1OUT |=  0x10
+#define FANPOWOFF RELAYON
+#define FANPOWON  RELAYOFF
 #define RELAYSET    1
 #define RELAYRESET  0
 

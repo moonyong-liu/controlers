@@ -198,15 +198,14 @@ typedef struct{
 
 typedef union{
     struct{
-      uint8 UpValueWar    : 1;
-      uint8 DownValueWar  : 1;
+      uint8 AlmValue      : 1;    // sensor value > alarm value :alarm on
+      uint8 CutofValue    : 1;    // sensor value > cut off power value:cutoffpower
       uint8 PowerWar      : 1;
       uint8 SensorWar     : 1;
       uint8 NoconfigWar   : 1;
-      uint8 y             : 1;
-      uint8 z             : 1;
+      uint8 SenOk         : 1;
+      uint8 OnValue       : 1;        // sensor value < cut powervalue : poweron
       uint8 CanWar        : 1;
-
     }_Bit;
     uint8 Byte;
 }_Warn;
