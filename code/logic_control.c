@@ -96,12 +96,12 @@ static uint8 assotype_1( _Warn *WarValue, uint8 CurrentDevice, uint16 value )
     else{                                      // asso sensor data ok
       ConeCheck[CurrentDevice] = 0;            // clear 30s count
     }
-    if( value >= ONEHALFPER || WarValue->_Bit.SensorWar==1 ){
+    if( WarValue->_Bit.CutofValue==1 || WarValue->_Bit.SensorWar==1 ){
       RELAYOFF; // ¶Ïµç
       CutDownSign |= 0x01;       // sign I cut the power
       return 1;
     }
-    else if( value <= ONEPERCENT){
+    else{
       if(!(CutDownSign&0xfe)){           // other assotype didn`t cut the power
         RELAYON;              // RELAY ON   
       }
@@ -130,7 +130,7 @@ static uint8 assotype_2( _Warn *WarValue, uint8 CurrentDevice, uint16 value )
     else{                                      // asso sensor data ok
       ConeCheck[CurrentDevice] = 0;            // clear 30s count
     }
-    if( value >= ONEPERCENT || WarValue->_Bit.SensorWar==1 ){
+    if( WarValue->_Bit.CutofValue==1 || WarValue->_Bit.SensorWar==1 ){
       CutDownSign |= 0x02;       // sign I cut the power
       RELAYOFF; 
       return 1;
@@ -162,7 +162,7 @@ static uint8 assotype_3( _Warn *WarValue, uint8 CurrentDevice, uint16 value )
     else{                                      // asso sensor data ok
       ConeCheck[CurrentDevice] = 0;            // clear 30s count
     }
-    if( value >= HALFPERCENT || WarValue->_Bit.SensorWar==1 ){
+    if( WarValue->_Bit.CutofValue==1 || WarValue->_Bit.SensorWar==1 ){
       CutDownSign |= 0x04;       // sign I cut the power
       RELAYOFF;
       return 1;
@@ -189,12 +189,6 @@ static uint8 assotype_3( _Warn *WarValue, uint8 CurrentDevice, uint16 value )
 static uint8 assotype_4( _Warn *WarValue, uint8 CurrentDevice, uint16 Value )
 {
   if( LoCoExe->ExeType == Fan ){
-    if( WarValue->_Bit.SensorWar == 1 ){          // asso sensor warning 
-      //ConeCheck[CurrentDevice] = 0;             // think about The sensor no data,clear or not
-    }
-    else{                                      // asso sensor data ok
-      ConeCheck[CurrentDevice] = 0;            // clear 30s count
-    }
     if( Value >= THEPERCENT && FanStop==1 ){
       FANPOWOFF;                    // fan power off
       CutDownSign |= 0x08;       // sign I cut the power
@@ -224,7 +218,7 @@ static uint8 assotype_4( _Warn *WarValue, uint8 CurrentDevice, uint16 Value )
 // all powerdevice need
 static uint8 assotype_5( _Warn *WarValue, uint8 CurrentDevice )
 {
-  if( LoCoExe->ExeType == Power  ||  LoCoExe->ExeType == Fan ){
+  if( LoCoExe->ExeType == Power ){
     if( WarValue->_Bit.SensorWar == 1 ){          // asso sensor warning 
       //ConeCheck[CurrentDevice] = 0;             // think about The sensor no data,clear or not
       //return 2;
@@ -232,23 +226,25 @@ static uint8 assotype_5( _Warn *WarValue, uint8 CurrentDevice )
     else{                                      // asso sensor data ok
       ConeCheck[CurrentDevice] = 0;            // clear 30s count
     }
-    if( (WarValue->_Bit.CutofValue == 1) || ( WarValue->_Bit.SensorWar == 1 ) ){
-      if(LoCoExe->ExeType == Fan){
-        FanStop = 1;             // FAN status : stop
-      }
-      else{
+    if( (WarValue->_Bit.AlmValue == 1) || ( WarValue->_Bit.SensorWar == 1 ) || (WarValue->_Bit.CutofValue==1) ){
         RELAYOFF;
-      }
-      CutDownSign |= 0x10;       // sign I cut the power
-      return 1;
+        CutDownSign |= 0x10;       // sign I cut the power
+        return 1;
     }
     else{
-      FanStop = 0;            // FAN status : RUN
       if(!(CutDownSign&0xef)){           // other assotype didn`t cut the power
          RELAYON;              // RELAY ON 
       }
     }
     CutDownSign &= ~0x10;      // sign I repower
+  }
+  else if( LoCoExe->ExeType == Fan ){
+    if( ( WarValue->_Bit.AlmValue == 1) || ( WarValue->_Bit.SensorWar == 1 ) || (WarValue->_Bit.CutofValue==1) ){
+      FanStop = 1; // FAN status : stop
+    }
+    else{
+      FanStop = 0;    // FAN status: run
+    }
   }
   else if( LoCoExe->ExeType == War ){
     if((WarValue->_Bit.AlmValue == 1)){
@@ -739,8 +735,12 @@ uint8 check_overtime( void )
 {
   uint8 asso_number;
   uint8 tmp1;
+  if(StartDelay==1)return 1;             // not begin
   if( Statues->_Bit.CtrlMode != LocoAuto ){      // if hand control
     return 1;
+  }
+  if(LoCoExe->ExeType ==Fan){          // FAN not controled
+    return 1; 
   }
   asso_number = LoCoAsso->Quantity;
     if( LoCoAsso->Quantity != 0xff ){
@@ -751,31 +751,15 @@ uint8 check_overtime( void )
   }
   for(tmp1=0; tmp1<asso_number;tmp1++){
     if( ConeCheck[tmp1] >= ASSOTIMEOUT ){       // asso sensor didn`t receive data 30s
-      if(LoCoExe->ExeType == Fan){
-        RELAYON;
-      }
-      else{
-        RELAYOFF;                                // power off
-      }
+      RELAYOFF;                                // power off
       CutDownSign |= 0x20;                     // sign I cut the power
-      LastDevice = LoCoAsso->AssoInfo[tmp1].AssoID;
       return 1;
     }
     else{
-      if( LastDevice != 0xff ){        // not first in
-        if( LastDevice == LoCoAsso->AssoInfo[tmp1].AssoID ){
-          if(!(CutDownSign&0xdf)){                 // other assotype didn`t cut the power
-             RELAYON;              // RELAY ON  
-          }
-          CutDownSign &= ~0x20;      // sign I repower
-        }
+      if(!(CutDownSign&0xdf)){                 // other assotype didn`t cut the power
+        RELAYON;              // RELAY ON  
       }
-      else{                                // first in
-        if(!(CutDownSign&0xdf)){           // other assotype didn`t cut the power
-           RELAYON;              // RELAY ON         
-        }
-        CutDownSign &= ~0x20;      // sign I repower
-      }
+      CutDownSign &= ~0x20;      // sign I repower
     }
   }
   return 0;

@@ -18,7 +18,7 @@ enum{
 };
 
 const uint8 ConfigInfo = 0xa2;
-const uint8 CanIDH = 0x01;
+const uint8 CanIDH = 0x04;
 const uint8 CanIDL = 0x01; // 3bits max = 7
 
 #define RELAYON  P1OUT &= ~0x10
@@ -65,7 +65,7 @@ const uint8 CanIDL = 0x01; // 3bits max = 7
 
 //1875 * 0.008 = 15s
 #define ASSOTIMEOUT 1875 
-//3750 * 0.008 = 30s
-#define RELAYONDELY 3750   
+//3750 * 0.008 = 60s
+#define RELAYONDELY 7500   
 
 #endif
