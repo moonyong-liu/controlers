@@ -182,6 +182,8 @@ typedef struct{
 typedef struct{
   uint8 DevSeted;
   uint8 ExeType;
+  uint8 PwSeted;
+  uint8 PassWord;
 }_ExecuteInfo;  //execute info.
 // 关联信息
 typedef struct{
@@ -302,6 +304,9 @@ typedef struct{
       uint8     AssoID;
       uint8     AssoType;
     }_OpDevFe;          // output device Feedback
+    struct{
+      uint8 PassWord;
+    }_SetPsWd;          //set password
   }_DataForWho;
 }_Can_Package;
 

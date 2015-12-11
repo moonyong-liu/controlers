@@ -25,17 +25,23 @@ _Can_Package AckMess;
 uint8 ResetCan; //reset mcp2515
 
 // gobal define or const
+// order
 const uint8 ExeSet        = 0x00;
 const uint8 AssoSet       = 0x05;
+const uint8 ManConfigAll  = 0x02;
+const uint8 ManConfigSelf = 0x03;
+const uint8 ManAssoSelf   = 0x06;
+const uint8 SETPASSWORD   = 0x10;
+// value
+const uint8 PASSWORD       =0x09;
+// code
 const uint8 Power         = 0x14;
 const uint8 Fan           = 0x15;
 const uint8 War           = 0x16;
 const uint8 LocoHand      = 0x03;
 const uint8 LocoAuto      = 0x02;
-const uint8 ManConfigAll  = 0x02;
-const uint8 ManConfigSelf = 0x03;
-const uint8 ManAssoSelf   = 0x06;
 const uint8 PcHand        = 0x01;
+
 
 uint16 ConeCheck[64];            // asso timeout count buffer
 uint16 LastValue;                // soft filter ,receive sensor value
@@ -57,6 +63,11 @@ uint8 Led500ms=13;               // CAN LED BLINK PERIOD
 uint8 TimeFlag;                  // delay function 
 uint8 StartDelay=1;                // relay delay on begin
 
+uint8 count_pw; // password input count
+uint8 pw;       // input password
+uint8 HandCount; //ta1
+uint8 press0; //balck button
+uint8 press1; //red  button
 // controler
 // external variable
 
@@ -529,12 +540,14 @@ static uint8 write_flash_exe(void)
 
   *LoCoExe = ExeCofig;                 // write flash
   
+  
   FCTL1 = FWKEY;                          // Clear WRT bit
   FCTL3 = FWKEY+LOCK;                     // Set LOCK bit
 
   __enable_interrupt();
   return 0;
 }
+
 
 // write flash statues 
 static uint8 write_flash_statues(void)
@@ -661,38 +674,39 @@ static uint8 statues_init(void)
     write_flash_statues();
     DELAY(1000);
   }  
+  if( LoCoExe->PwSeted == 1 ){
+    ExeCofig.PassWord = LoCoExe->PassWord;
+  }
+  else{
+    ExeCofig.PassWord = PASSWORD;
+  }
   return 0;
 }
 
 // check auto or hand button
 uint8 check_auto(void)
 {
-  if( HAND ){
-    FlagHand = 1;    // for TA0();
+  if( FlagHandOK == 1 ){  // from TA0();
+    FlagHandOK=0;
+    // enter HAND MODE
+    StatuesTmp = *Statues;
+    StatuesTmp._Bit.CtrlMode = LocoHand;
+    clear_flash_statues();
+    write_flash_statues();
+    HANDLIGHT;
   }
-  else{
-    FlagHand = 0;
-  }
-  if( FlagHandOK ){  // from TA0();
-    FlagHandOK = 0;
-    if( Statues->_Bit.CtrlMode == LocoHand ){
-      StatuesTmp = *Statues;
-      StatuesTmp._Bit.CtrlMode = LocoAuto;
-      clear_flash_statues();
-      write_flash_statues();
-      AUTOLIGHT;
-      FORCENIGHT;
-    }
-    else if( Statues->_Bit.CtrlMode == LocoAuto || Statues->_Bit.CtrlMode == PcHand ){
-      StatuesTmp = *Statues;
-      StatuesTmp._Bit.CtrlMode = LocoHand;
-      clear_flash_statues();
-      write_flash_statues();
-      HANDLIGHT;
-    }
+  else if( FlagHandOK == 2){
+    FlagHandOK=0;
+    // enter AUTO MODE
+    StatuesTmp = *Statues;
+    StatuesTmp._Bit.CtrlMode = LocoAuto;
+    clear_flash_statues();
+    write_flash_statues();
+    AUTOLIGHT;
+    FORCENIGHT;
   }
   if(Statues->_Bit.CtrlMode == LocoHand){
-    if(ForceCount>250){
+    if(ForceCount>125){      //press 1s(red)
       ForceCount=0;
       if(ForceSign){
         if( LoCoExe->ExeType == Fan ){
@@ -725,6 +739,20 @@ uint8 check_auto(void)
   }
   else{
     AUTOLIGHT;
+  }
+  // auto and force led status
+  while(press0){
+    HANDLIGHT;
+    delay(1000);
+    AUTOLIGHT;
+    press0--;
+  }
+  while(press1){
+    FORCELIGHT;
+    delay(1000);
+    FORCENIGHT;
+    delay(1000);
+    press1--;
   }
   return 0;
 }
@@ -853,7 +881,6 @@ uint8 exe_working(void)
   return 0;
 }
 
-
 //const uint8 PcAuto      = 0x00;
 uint8 handle_data_logic( _RDataTmp* NewData )
 {
@@ -870,6 +897,7 @@ uint8 handle_data_logic( _RDataTmp* NewData )
   NoMessage = 0;
     if( NewData->Data._ID.ID == CanIDH ){   // 给自己
       if( NewData->Data._Type.Type == ExeSet ){     // 执行器设置
+        ExeCofig = *LoCoExe;
         ExeCofig.ExeType = NewData->Data._DataForWho._ExecuteInfo.ExeType; //保存执行器类型
         ExeCofig.DevSeted = 1;
         clear_flash_exe();
@@ -957,6 +985,16 @@ uint8 handle_data_logic( _RDataTmp* NewData )
           }  
         //}
       }
+      else if( NewData->Data._Type.Type == SETPASSWORD ){   // set password
+        sontype = NewData->Data._Type.TypeA;
+        if( sontype == 0x00 ){
+          ExeCofig = *LoCoExe;
+          ExeCofig.PassWord = NewData->Data._DataForWho._SetPsWd.PassWord;
+          ExeCofig.PwSeted = 1;
+          clear_flash_exe();
+          write_flash_exe();
+        }
+      }
     }// end of 给自己
     else if( NewData->Data._Type.Type == ManConfigAll ){     //查询所有设备配置信息
       //if( LoCoExe->DevSeted ){
@@ -999,7 +1037,6 @@ uint8 handle_data_logic( _RDataTmp* NewData )
     }
   return 0;
 }
-
 void delay( uint16 time )
 {
   DelayFlag=time;
@@ -1049,16 +1086,78 @@ __interrupt void TIMER0_A0_ISR(void)
   else{
     Led500ms--;
   }
-  if(FORCE){
-    if(ForceCount>=250){
-      //ForceCount = 250;
-      ForceSign ^= 1;
+  // ready for enter password
+  if(Statues->_Bit.CtrlMode == LocoAuto || Statues->_Bit.CtrlMode == PcHand){
+    if(HAND){
+      if(HandCount==20){       //160ms
+        pw = pw<<1 ;
+        pw |= 0;
+        count_pw++;
+        //blink led(green)
+        press0+=1;
+      }
+      if(HandCount<0xff){
+        HandCount++;
+      }
     }
-    ForceCount++;
+    else{
+      HandCount=0;
+    }
+    if(FORCE){
+      if(ForceCount==20){
+        pw = pw<<1;
+        pw |= 1;
+        count_pw++;
+        //blink led(red)
+        press1+=1;
+      }
+      //press 1s(125*8ms) clear count_pw,pw
+      if(ForceCount==125){ 
+        count_pw = 0;
+        pw = 0;
+        //blink led(r) 3times
+        press1+=3;
+      }
+      if(ForceCount<0xff){
+        ForceCount++;
+      }
+    }
+    else{
+      ForceCount = 0;
+    }
+    // enter finish
+    if(count_pw == 4){
+      count_pw=0;
+      if(pw == ExeCofig.PassWord){
+        FlagHandOK = 1;
+      }
+      pw=0;
+    }
+  }//end of passwordmode==1
+  // control mode
+  else if(Statues->_Bit.CtrlMode == LocoHand){
+    if(HAND){
+      if(HandCount>125){       //1ms
+        FlagHandOK = 2;
+      }
+      HandCount++;
+    }
+    else{
+      HandCount=0;
+    }
+    if(FORCE){
+      if(ForceCount>=125){ //1s
+        ForceSign ^= 1;
+      }
+      ForceCount++;
+    }
+    else{
+      ForceCount = 0;
+    }
   }
-  else{
-    ForceCount = 0;
-  }
+  
+  
+  
   // check asso device time out
   if( StartDelay == 0){
     if( Statues->_Bit.CtrlMode == LocoAuto ){
